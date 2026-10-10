@@ -84,6 +84,8 @@ Playback window:
 
 ![Playback window with editable source and poem output](screenshots/playback.png)
 
+Consider sharing your source and output at [r/codepoem](https://www.reddit.com/r/codepoem/).
+
 The included `moon_mailbox.exs` poem types its lines character by character,
 holds the completed page for three seconds, then removes one line per second
 until the page is empty and starts again. Its speed control changes the
