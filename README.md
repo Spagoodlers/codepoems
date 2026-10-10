@@ -4,6 +4,8 @@ A local web gallery for executable poems. Browse and edit source in the
 browser, run it with an installed language runtime, and add poems with their
 runtime, controls, and theme configuration.
 
+![About](screenshots/about.png)
+
 ## Project layout
 
 - `index.html` is the browser interface.
@@ -78,6 +80,10 @@ Example GIF export:
 
 ![Animated GIF example of a poem playback](screenshots/samplepoem.gif)
 
+Playback window:
+
+![Playback window with editable source and poem output](screenshots/playback.png)
+
 The included `moon_mailbox.exs` poem types its lines character by character,
 holds the completed page for three seconds, then removes one line per second
 until the page is empty and starts again. Its speed control changes the
@@ -98,6 +104,14 @@ maximum configured `speed` value, stopping at a repeated cleared frame or after
 30 seconds.
 **Save poem** stores the original selected file, not edits made in the browser,
 and adds its settings to `config\poems.json`.
+
+Upload source editor:
+
+![Upload form with source editor and runtime controls](screenshots/upload-source.png)
+
+Upload playback preview:
+
+![Upload form with playback preview](screenshots/upload-playback.png)
 
 The upload form starts with `iterations` (1–1000, default 100) and `speed`
 (0.25–4, default 1) controls. Each configured control is passed as a
