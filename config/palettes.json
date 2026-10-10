@@ -1,0 +1,266 @@
+[
+  {
+    "id": "mono",
+    "label": "Monochrome",
+    "colors": {
+      "bg": "#080808",
+      "panel": "#0d0d0d",
+      "ink": "#ededed",
+      "dim": "#858585",
+      "line": "#303030",
+      "term": "#050505",
+      "termink": "#ededed",
+      "acc": "#ffffff"
+    },
+    "syntax": {
+      "comment": "#777777",
+      "string": "#c0c0c0",
+      "keyword": "#ffffff",
+      "number": "#aaaaaa",
+      "builtin": "#dddddd",
+      "constant": "#f2f2f2",
+      "atom": "#bcbcbc",
+      "operator": "#888888"
+    }
+  },
+  {
+    "id": "ember",
+    "label": "Ember",
+    "colors": {
+      "bg": "#15110f",
+      "panel": "#1d1714",
+      "ink": "#eee2d8",
+      "dim": "#a18c7d",
+      "line": "#40332b",
+      "term": "#100c0a",
+      "termink": "#f1dfd1",
+      "acc": "#e7a17c"
+    },
+    "syntax": {
+      "comment": "#907d70",
+      "string": "#d8bd8a",
+      "keyword": "#e7a17c",
+      "number": "#e6bc8f",
+      "builtin": "#c6a3d8",
+      "constant": "#e58d83",
+      "atom": "#d8bd8a",
+      "operator": "#b8a99f"
+    }
+  },
+  {
+    "id": "paper",
+    "label": "Paper",
+    "colors": {
+      "bg": "#f3f0e9",
+      "panel": "#faf8f3",
+      "ink": "#292824",
+      "dim": "#77736b",
+      "line": "#d5d0c5",
+      "term": "#22211e",
+      "termink": "#f3f0e9",
+      "acc": "#495b52"
+    },
+    "syntax": {
+      "comment": "#88847a",
+      "string": "#687b4b",
+      "keyword": "#684f7a",
+      "number": "#a45e35",
+      "builtin": "#3d6873",
+      "constant": "#a14f4a",
+      "atom": "#8a6b35",
+      "operator": "#77736b"
+    }
+  },
+  {
+    "id": "slate",
+    "label": "Slate",
+    "colors": {
+      "bg": "#10141a",
+      "panel": "#171d25",
+      "ink": "#e1e6ed",
+      "dim": "#8c99a8",
+      "line": "#303a47",
+      "term": "#0b0f14",
+      "termink": "#dce5ef",
+      "acc": "#a8bfd8"
+    },
+    "syntax": {
+      "comment": "#788797",
+      "string": "#a8c9a0",
+      "keyword": "#c0a8d8",
+      "number": "#e0b487",
+      "builtin": "#91c1cf",
+      "constant": "#e09a9a",
+      "atom": "#d2c08d",
+      "operator": "#aab4bf"
+    }
+  },
+  {
+    "id": "wood",
+    "label": "Wood",
+    "colors": {
+      "bg": "#17120d",
+      "panel": "#211910",
+      "ink": "#ead8b5",
+      "dim": "#a18a68",
+      "line": "#493824",
+      "term": "#100c08",
+      "termink": "#eed6aa",
+      "acc": "#d29a58"
+    },
+    "syntax": {
+      "comment": "#8e8068",
+      "string": "#b9bd78",
+      "keyword": "#e1a65f",
+      "number": "#d58b52",
+      "builtin": "#8fba9a",
+      "constant": "#e58e70",
+      "atom": "#d4bd78",
+      "operator": "#b4a184"
+    }
+  },
+  {
+    "id": "nature",
+    "label": "Nature",
+    "colors": {
+      "bg": "#101710",
+      "panel": "#172119",
+      "ink": "#dce8d5",
+      "dim": "#91a18b",
+      "line": "#344638",
+      "term": "#0a100b",
+      "termink": "#dcebd4",
+      "acc": "#9bc27b"
+    },
+    "syntax": {
+      "comment": "#7f9782",
+      "string": "#c5c97f",
+      "keyword": "#a8c982",
+      "number": "#ddb47a",
+      "builtin": "#7fc2aa",
+      "constant": "#e39c76",
+      "atom": "#b4c98b",
+      "operator": "#a5b2a0"
+    }
+  },
+  {
+    "id": "neon",
+    "label": "Neon",
+    "colors": {
+      "bg": "#100b18",
+      "panel": "#191126",
+      "ink": "#f1eaff",
+      "dim": "#a293b8",
+      "line": "#44315b",
+      "term": "#090610",
+      "termink": "#f3eaff",
+      "acc": "#ff55d7"
+    },
+    "syntax": {
+      "comment": "#9382a8",
+      "string": "#c2ff66",
+      "keyword": "#ff62d0",
+      "number": "#ffd45c",
+      "builtin": "#53e6f2",
+      "constant": "#ff7777",
+      "atom": "#a68bff",
+      "operator": "#d1b9ec"
+    }
+  },
+  {
+    "id": "midnight",
+    "label": "Midnight",
+    "colors": {
+      "bg": "#090f20",
+      "panel": "#111a2d",
+      "ink": "#dce6ff",
+      "dim": "#8493b7",
+      "line": "#2e3c5e",
+      "term": "#060a15",
+      "termink": "#dbe5ff",
+      "acc": "#8bb8ff"
+    },
+    "syntax": {
+      "comment": "#7182a7",
+      "string": "#a9d6c8",
+      "keyword": "#bd9aff",
+      "number": "#f2c078",
+      "builtin": "#83d4ef",
+      "constant": "#ff9caa",
+      "atom": "#d2c38b",
+      "operator": "#9baaca"
+    }
+  },
+  {
+    "id": "uggo",
+    "label": "UGGO",
+    "colors": {
+      "bg": "#777777",
+      "panel": "#929292",
+      "ink": "#ffffff",
+      "dim": "#353535",
+      "line": "#515151",
+      "term": "#555555",
+      "termink": "#ffffff",
+      "acc": "#e52521"
+    },
+    "syntax": {
+      "comment": "#353535",
+      "string": "#ffe600",
+      "keyword": "#e52521",
+      "number": "#0051ba",
+      "builtin": "#0051ba",
+      "constant": "#e52521",
+      "atom": "#ffe600",
+      "operator": "#252525"
+    }
+  },
+  {
+    "id": "lava",
+    "label": "Lava",
+    "colors": {
+      "bg": "#1a0c0a",
+      "panel": "#26110d",
+      "ink": "#ffe4cf",
+      "dim": "#b88a73",
+      "line": "#593027",
+      "term": "#100705",
+      "termink": "#ffe2c9",
+      "acc": "#ff7048"
+    },
+    "syntax": {
+      "comment": "#997464",
+      "string": "#ffd166",
+      "keyword": "#ff7048",
+      "number": "#ffa34d",
+      "builtin": "#e9bc78",
+      "constant": "#ff5d55",
+      "atom": "#ffd18a",
+      "operator": "#c49c87"
+    }
+  },
+  {
+    "id": "spearmint",
+    "label": "Spearmint",
+    "colors": {
+      "bg": "#0c1916",
+      "panel": "#12231f",
+      "ink": "#d9f1e9",
+      "dim": "#86a99d",
+      "line": "#2d5147",
+      "term": "#07110f",
+      "termink": "#dbf5eb",
+      "acc": "#75d8b4"
+    },
+    "syntax": {
+      "comment": "#73978c",
+      "string": "#c0df8a",
+      "keyword": "#75d8b4",
+      "number": "#e3c17e",
+      "builtin": "#72c8cf",
+      "constant": "#ed9e9e",
+      "atom": "#a8d59b",
+      "operator": "#a2c4b8"
+    }
+  }
+]

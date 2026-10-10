@@ -1,0 +1,22 @@
+[
+  {
+    "id": "javascript",
+    "label": "JavaScript",
+    "extension": ".js"
+  },
+  {
+    "id": "ruby",
+    "label": "Ruby",
+    "extension": ".rb"
+  },
+  {
+    "id": "racket",
+    "label": "Racket",
+    "extension": ".rkt"
+  },
+  {
+    "id": "elixir",
+    "label": "Elixir",
+    "extension": ".exs"
+  }
+]

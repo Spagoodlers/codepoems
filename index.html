@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>code poems</title>
+<style>
+:root{--bg:#080808;--panel:#0d0d0d;--ink:#ededed;--dim:#858585;--line:#303030;--term:#050505;--termink:#ededed;--acc:#fff;--syntax-comment:#777;--syntax-string:#c0c0c0;--syntax-keyword:#fff;--syntax-number:#aaa;--syntax-builtin:#ddd;--syntax-constant:#f2f2f2;--syntax-atom:#bcbcbc;--syntax-operator:#888;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-monospace,Consolas,Menlo,monospace}
+body{max-width:1500px;margin:0 auto;padding:16px}
+header{padding:0 0 12px;border-bottom:1px solid var(--line);color:var(--acc);font-size:13px}
+header::before{content:"$ "}
+nav{display:flex;gap:4px;flex-wrap:wrap;margin:12px 0}
+nav button,.field input,.field select,.field textarea,.upload button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:0;font:inherit}
+nav button{color:var(--dim);padding:5px 8px;cursor:pointer}
+nav button::before{content:"["}
+nav button::after{content:"]"}
+nav button.on{color:var(--acc);border-color:var(--acc)}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+@media(max-width:800px){main{grid-template-columns:1fr}}
+.win{background:var(--panel);border:1px solid var(--line);overflow:hidden;min-width:0}
+.source-win{background:var(--panel);border:0}
+.bar{display:flex;align-items:center;gap:8px;min-height:34px;padding:5px 9px;border-bottom:1px solid var(--line);font-size:12px;color:var(--dim)}
+.source-win .bar{border-bottom:0}
+.bar .sp{flex:1}
+.bar button,.upload button{font:inherit;font-size:12px;background:transparent;color:var(--acc);border:1px solid var(--line);border-radius:0;padding:4px 8px;cursor:pointer}
+.bar button:disabled,.upload button:disabled{opacity:.45;cursor:default}
+.controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 12px;padding:8px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:12px;color:var(--dim)}
+.controls:empty{display:none}
+.control{display:flex;align-items:center;gap:8px}
+.control input[type=range]{width:120px;accent-color:var(--acc)}
+.control input[type=number]{width:88px;padding:4px 6px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:0;font:inherit}
+pre{margin:0;padding:14px;overflow:auto;font-size:13px;line-height:1.4;height:min(68vh,640px);min-height:320px}
+#term,#upload-playback-output{display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:pre;word-break:normal;overflow-wrap:normal;background:var(--term);color:var(--termink)}
+#term{height:min(68vh,640px);min-height:320px}
+.playback-content{display:block;flex:none;width:max-content;max-width:none;white-space:pre;line-height:1.1;text-align:left;text-shadow:0 0 .45em color-mix(in srgb,var(--termink) 22%,transparent);animation:frame-in 140ms ease-out both}
+@keyframes frame-in{from{opacity:.68;transform:translateY(3px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.playback-content{animation:none}}
+.code-sheet{height:min(72vh,760px);min-height:360px;overflow:hidden;background:var(--panel);display:flex;align-items:center;justify-content:center}
+.code-sheet .source-content{display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink);font-size:13px;line-height:1.35}
+#src{white-space:pre-wrap;cursor:text;outline:none}
+#src:focus,#upload-preview:focus{outline:1px solid var(--acc);outline-offset:-1px}
+#upload-preview{cursor:text}
+.syntax-comment{color:var(--syntax-comment)}
+.syntax-string{color:var(--syntax-string)}
+.syntax-keyword{color:var(--syntax-keyword)}
+.syntax-number{color:var(--syntax-number)}
+.syntax-builtin{color:var(--syntax-builtin)}
+.syntax-constant{color:var(--syntax-constant)}
+.syntax-atom{color:var(--syntax-atom)}
+.syntax-operator{color:var(--syntax-operator)}
+.note{margin-top:10px;font-size:12px;color:var(--dim)}
+.upload{width:100%;padding:12px 0;border-top:1px solid var(--line)}
+.upload h1{font-size:14px;font-weight:normal;color:var(--acc);margin:0 0 8px}
+.upload p{color:var(--dim);font-size:12px;line-height:1.5}
+.upload-form{min-width:0}
+.upload-workspace{display:grid;grid-template-columns:minmax(250px,0.7fr) minmax(0,1.3fr);gap:24px;align-items:start}
+.upload-settings{min-width:0}
+.upload-stage{min-width:0}
+.stage-toolbar{display:flex;align-items:center;gap:5px;min-height:38px;padding:5px 8px;border-bottom:1px solid var(--line)}
+.stage-toolbar button{font:inherit;font-size:12px;background:transparent;color:var(--dim);border:1px solid transparent;border-radius:0;padding:5px 8px;cursor:pointer}
+.stage-toolbar button[aria-selected=true]{color:var(--acc);border-color:var(--line)}
+.stage-toolbar button:disabled{opacity:.45;cursor:default}
+.stage-toolbar .sp{flex:1}
+.stage-canvas{height:min(72vh,760px);min-height:360px}
+#upload-preview{width:100%;height:100%;min-height:0;border:0;background:var(--panel);display:flex;align-items:center;justify-content:center;overflow:hidden}
+#upload-playback-output{width:100%;height:100%;min-height:0;border:0;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:pre;word-break:normal;overflow-wrap:normal;background:var(--term);color:var(--termink)}
+@media(max-width:800px){.upload-workspace{grid-template-columns:1fr}.stage-canvas{height:min(60vh,640px)}}
+.upload-playback-status{min-height:1.5em;margin:8px 0;color:var(--dim);font-size:12px}
+.upload h2{font-size:13px;font-weight:normal;color:var(--dim);margin:20px 0 8px}
+.field{display:grid;gap:6px;margin:14px 0;font-size:12px;color:var(--dim)}
+.field input,.field select,.field textarea{padding:7px}
+.field input[type=file]{max-width:100%}
+select option{background:var(--bg);color:var(--ink)}
+.upload-controls{display:grid;gap:16px;margin:18px 0}
+.upload-control{display:grid;grid-template-columns:auto minmax(120px,1fr);align-items:center;gap:8px 14px;color:var(--dim);font-size:12px}
+.upload-control input[type=number]{width:88px;padding:5px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:0;font:inherit}
+.upload-control input[type=range]{width:100%;accent-color:var(--acc)}
+.fit-option{display:flex;align-items:center;gap:8px;color:var(--dim);font-size:12px}
+.fit-option input{accent-color:var(--acc)}
+.upload-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:12px}
+#upload-status{min-height:1.5em;color:var(--acc);font-size:12px}
+[hidden]{display:none!important}
+.about{max-width:800px;padding:12px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.65}
+.about h1{font-size:14px;font-weight:normal;color:var(--acc)}
+.about h2{font-size:13px;font-weight:normal;margin-top:24px}
+.about p,.about li{color:var(--dim)}
+.about code{color:var(--ink)}
+</style>
+</head>
+<body>
+<header>code poems :: local runtimes</header>
+<nav id="tabs" aria-label="Navigation"></nav>
+<section id="poem-view">
+  <div id="controls" class="controls" aria-label="Interpreter controls"></div>
+  <main>
+    <div class="win source-win"><div class="bar"><span id="fname"></span><span class="sp"></span><span>temporary edits</span></div><pre id="src" class="code-sheet" contenteditable="true" role="textbox" aria-label="Editable poem source" aria-multiline="true" spellcheck="false"></pre></div>
+    <div class="win"><div class="bar"><span id="cmd"></span><span class="sp"></span><button id="run">run</button><button id="stop" disabled>stop</button></div><pre id="term" aria-live="polite"></pre></div>
+  </main>
+  <p class="note">Poems run from installed local runtimes. Start the server with <code>node .\server.js</code>.</p>
+</section>
+<section id="about-view" class="about" hidden>
+  <h1>About code poems</h1>
+  <p>A small local gallery for executable poems. Each piece is kept as a source file, shown in an editable, syntax-colored source window, and run with its installed runtime. Editor changes are temporary and never overwrite the source file.</p>
+  <h2>Using the app</h2>
+  <ul>
+    <li>Select a poem tab to edit its source and see its configured controls. Changes are temporary.</li>
+    <li>Adjust controls, then choose <code>run</code> to execute the current editor contents; use <code>stop</code> to end a running poem.</li>
+    <li>Use <code>+ upload</code> to add a source file, runtime, theme, and controls.</li>
+  </ul>
+  <h2>Local files and runtimes</h2>
+  <p>Poem sources live in <code>poems\</code>. Runtime definitions, poem settings, and color palettes live in <code>config\</code>. JavaScript uses the Node.js installation running the server; Ruby, Racket, and Elixir require their respective runtimes to be installed.</p>
+  <p>Uploaded code runs as a local process with the permissions of the account running the server. Only run source files you trust.</p>
+</section>
+<section id="upload-view" class="upload" hidden>
+  <h1>Add a poem</h1>
+  <p>Configure the poem on the left; switch the preview window between editable source and playback. Source edits are temporary: preview runs the edited text, while saving stores the original selected file.</p>
+  <form id="upload-form" class="upload-form" novalidate>
+    <div class="upload-workspace">
+      <section class="upload-settings">
+        <label class="field">Source file
+          <input id="upload-file" type="file">
+        </label>
+        <label class="field">Runtime
+          <select id="upload-runtime"></select>
+        </label>
+        <label class="field">Theme
+          <select id="upload-theme"></select>
+        </label>
+        <h2>Controls</h2>
+        <div id="upload-controls" class="upload-controls" aria-label="Runtime controls"></div>
+        <label class="fit-option"><input id="upload-fit-source" type="checkbox" checked> Shrink source to fit window</label>
+        <div class="upload-actions">
+          <button id="upload-submit" type="submit">save poem</button>
+          <p id="upload-status" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+      <section class="win upload-stage" aria-label="Source and playback preview">
+        <div class="stage-toolbar" role="tablist" aria-label="Preview view">
+          <button id="upload-source-tab" type="button" role="tab" aria-selected="true" aria-controls="upload-preview">source</button>
+          <button id="upload-playback-tab" type="button" role="tab" aria-selected="false" aria-controls="upload-playback-output" tabindex="-1">playback</button>
+          <span class="sp"></span>
+          <span id="upload-stage-filename"></span>
+          <span id="upload-stage-runtime"></span>
+          <button id="upload-preview-run" type="button">preview</button>
+          <button id="upload-preview-stop" type="button" disabled>stop</button>
+        </div>
+        <div class="stage-canvas">
+          <pre id="upload-preview" class="code-sheet" role="textbox" aria-labelledby="upload-source-tab" aria-label="Editable upload source" aria-multiline="true" contenteditable="true" spellcheck="false">Choose a source file to preview it here.</pre>
+          <pre id="upload-playback-output" role="tabpanel" aria-labelledby="upload-playback-tab" aria-live="polite" hidden>Choose a source file and select preview.</pre>
+        </div>
+        <p id="upload-playback-status" class="upload-playback-status" role="status" aria-live="polite"></p>
+      </section>
+    </div>
+  </form>
+</section>
+<script>
+const tabs=document.getElementById("tabs");
+const controls=document.getElementById("controls");
+const src=document.getElementById("src");
+const term=document.getElementById("term");
+const runButton=document.getElementById("run");
+const stopButton=document.getElementById("stop");
+const poemView=document.getElementById("poem-view");
+const uploadView=document.getElementById("upload-view");
+const aboutView=document.getElementById("about-view");
+const uploadForm=document.getElementById("upload-form");
+const uploadStatus=document.getElementById("upload-status");
+const uploadPreview=document.getElementById("upload-preview");
+const uploadFileInput=document.getElementById("upload-file");
+const uploadRuntimeSelect=document.getElementById("upload-runtime");
+const uploadThemeSelect=document.getElementById("upload-theme");
+const uploadFitSource=document.getElementById("upload-fit-source");
+const uploadSourceTab=document.getElementById("upload-source-tab");
+const uploadPlaybackTab=document.getElementById("upload-playback-tab");
+const uploadPlaybackOutput=document.getElementById("upload-playback-output");
+const uploadPreviewRunButton=document.getElementById("upload-preview-run");
+const uploadPreviewStopButton=document.getElementById("upload-preview-stop");
+const uploadPlaybackStatus=document.getElementById("upload-playback-status");
+let poems=[];
+let runtimes=[];
+let palettes=[];
+let selected;
+let activeRequest;
+let uploadPreviewRequest;
+let showingUpload=false;
+let showingAbout=false;
+const uploadControlDefinitions=[
+  {id:"iterations",label:"Iterations",type:"number",min:1,max:1000,step:1,value:100},
+  {id:"speed",label:"Speed",type:"range",min:0.25,max:4,step:0.25,value:1}
+];
+const codeSheets=new Set();
+const settingsByPoem={};
+
+function applyPalette(themeId){
+  const palette=palettes.find(item=>item.id===themeId)
+    ||palettes[0];
+  if(!palette)return;
+  for(const [key,value] of Object.entries(palette.colors)){
+    document.documentElement.style.setProperty(`--${key}`,value);
+  }
+  for(const [key,value] of Object.entries(palette.syntax)){
+    document.documentElement.style.setProperty(`--syntax-${key}`,value);
+  }
+}
+
+function renderTabs(){
+  tabs.replaceChildren();
+  poems.forEach(poem=>{
+    const button=document.createElement("button");
+    button.textContent=poem.id;
+    button.dataset.poem=poem.id;
+    button.classList.toggle("on",!showingUpload&&!showingAbout&&selected===poem);
+    button.addEventListener("click",()=>selectPoem(poem));
+    tabs.appendChild(button);
+  });
+  const uploadButton=document.createElement("button");
+  uploadButton.textContent="+ upload";
+  uploadButton.dataset.upload="true";
+  uploadButton.classList.toggle("on",showingUpload);
+  uploadButton.addEventListener("click",showUpload);
+  tabs.appendChild(uploadButton);
+  const aboutButton=document.createElement("button");
+  aboutButton.textContent="about";
+  aboutButton.dataset.about="true";
+  aboutButton.classList.toggle("on",showingAbout);
+  aboutButton.addEventListener("click",showAbout);
+  tabs.appendChild(aboutButton);
+}
+
+function renderControls(poem){
+  controls.replaceChildren();
+  const settings=settingsByPoem[poem.id]||(settingsByPoem[poem.id]={});
+  poem.controls.forEach(control=>{
+    if(settings[control.id]===undefined)settings[control.id]=control.value;
+    const label=document.createElement("label");
+    label.className="control";
+    const title=document.createElement("span");
+    title.textContent=control.label;
+    const input=document.createElement("input");
+    input.type=control.type;
+    input.min=control.min;
+    input.max=control.max;
+    input.step=control.step;
+    input.value=settings[control.id];
+    const value=document.createElement("span");
+    const display=()=>control.type==="range"?`${settings[control.id]}×`:`${settings[control.id]}`;
+    value.textContent=display();
+    input.addEventListener("input",()=>{
+      const parsed=Number(input.value);
+      if(!Number.isFinite(parsed))return;
+      settings[control.id]=Math.min(control.max,Math.max(control.min,parsed));
+      if(control.type==="number")settings[control.id]=Math.trunc(settings[control.id]);
+      input.value=settings[control.id];
+      value.textContent=display();
+    });
+    label.append(title,input,value);
+    controls.appendChild(label);
+  });
+}
+
+function renderUploadControls(){
+  const container=document.getElementById("upload-controls");
+  container.replaceChildren();
+  for(const control of uploadControlDefinitions){
+    const field=document.createElement("div");
+    field.className="upload-control";
+    const label=document.createElement("span");
+    label.textContent=control.label;
+    const number=document.createElement("input");
+    number.type="number";
+    number.min=control.min;
+    number.max=control.max;
+    number.step=control.step;
+    number.value=control.value;
+    number.dataset.controlValue=control.id;
+    number.setAttribute("aria-label",`${control.label} value`);
+    const range=document.createElement("input");
+    range.type="range";
+    range.min=control.min;
+    range.max=control.max;
+    range.step=control.step;
+    range.value=control.value;
+    range.setAttribute("aria-label",`${control.label} range`);
+    const sync=(value,clamp)=>{
+      let parsed=Number(value);
+      if(!Number.isFinite(parsed))return;
+      if(clamp){
+        parsed=Math.min(control.max,Math.max(control.min,parsed));
+        parsed=control.min+Math.round((parsed-control.min)/control.step)*control.step;
+        parsed=Number(parsed.toFixed(8));
+      }
+      number.value=String(parsed);
+      range.value=String(parsed);
+    };
+    number.addEventListener("input",()=>{
+      stopUploadPreview();
+      sync(number.value,false);
+    });
+    number.addEventListener("change",()=>{
+      stopUploadPreview();
+      sync(number.value,true);
+    });
+    range.addEventListener("input",()=>{
+      stopUploadPreview();
+      sync(range.value,false);
+    });
+    field.append(label,number,range);
+    container.appendChild(field);
+  }
+}
+
+function getUploadControls(){
+  return uploadControlDefinitions.map(control=>{
+    const input=document.querySelector(`#upload-controls [data-control-value="${control.id}"]`);
+    const value=input.valueAsNumber;
+    const steps=(value-control.min)/control.step;
+    if(!Number.isFinite(value)||value<control.min||value>control.max
+        ||Math.abs(steps-Math.round(steps))>1e-8
+        ||(control.type==="number"&&!Number.isInteger(value))){
+      const error=new Error(`${control.label} must be between ${control.min} and ${control.max} in steps of ${control.step}.`);
+      error.controlId=control.id;
+      throw error;
+    }
+    return {...control,value};
+  });
+}
+
+function showUploadStage(tab){
+  const sourceSelected=tab!=="playback";
+  uploadSourceTab.setAttribute("aria-selected",String(sourceSelected));
+  uploadPlaybackTab.setAttribute("aria-selected",String(!sourceSelected));
+  uploadSourceTab.tabIndex=sourceSelected?0:-1;
+  uploadPlaybackTab.tabIndex=sourceSelected?-1:0;
+  uploadPreview.hidden=!sourceSelected;
+  uploadPlaybackOutput.hidden=sourceSelected;
+  fitCodeSheet(uploadPreview);
+  fitPlayback(uploadPlaybackOutput);
+}
+
+function stopUploadPreview(){
+  if(!uploadPreviewRequest)return;
+  uploadPreviewRequest.abort();
+  uploadPreviewRequest=null;
+  uploadPreviewRunButton.disabled=false;
+  uploadPreviewStopButton.disabled=true;
+  uploadPlaybackStatus.textContent="Preview stopped.";
+}
+
+const syntaxRules={
+  javascript:[
+    ["comment",String.raw`//[^\n]*|/\*[\s\S]*?\*/`],
+    ["string",String.raw`"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`+"`"+String.raw`(?:\\.|[^`+"`"+String.raw`\\])*`+"`"],
+    ["keyword",String.raw`\b(?:as|async|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|export|extends|finally|for|from|function|get|if|implements|import|in|instanceof|interface|let|new|of|package|private|protected|public|return|set|static|super|switch|this|throw|try|typeof|var|void|while|with|yield)\b`],
+    ["constant",String.raw`\b(?:true|false|null|undefined|NaN|Infinity|globalThis)\b`],
+    ["number",String.raw`\b(?:0[xX][\da-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)\b`],
+    ["atom",String.raw`#[a-zA-Z_]\w*`],
+    ["builtin",String.raw`\b(?:Array|BigInt|Boolean|Date|Error|JSON|Map|Math|Number|Object|Promise|Proxy|Reflect|RegExp|Set|String|Symbol|WeakMap|WeakSet|console|document|fetch|global|module|process|require|setTimeout|setInterval|clearTimeout|clearInterval)\b`],
+    ["operator",String.raw`(?:===|!==|=>|==|!=|<=|>=|\+\+|--|&&|\|\||\?\?|\?\.|\*\*|[+\-*\/%=<>!&|^~?:])`]
+  ],
+  ruby:[
+    ["comment",String.raw`#.*`],
+    ["string",String.raw`"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'`],
+    ["keyword",String.raw`\b(?:BEGIN|END|alias|and|begin|break|case|class|def|defined\?|do|else|elsif|end|ensure|for|if|in|module|next|not|or|redo|rescue|retry|return|self|super|then|undef|unless|until|when|while|yield)\b`],
+    ["constant",String.raw`\b(?:true|false|nil|__FILE__|__LINE__|__ENCODING__)\b`],
+    ["number",String.raw`\b(?:0[xX][\da-fA-F_]+|0[bB][01_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)\b`],
+    ["atom",String.raw`(?:@@?|\$)[a-zA-Z_]\w*|:[a-zA-Z_]\w*[!?]?`],
+    ["builtin",String.raw`\b(?:abort|puts|print|p|require|sleep|raise|rand|Array|Hash|Integer|Float|String|Symbol|Math|File|OptionParser)\b`],
+    ["operator",String.raw`(?:===|==|!=|<=|>=|=>|->|&&|\|\||[+\-*\/%=<>!&|^~?:])`]
+  ],
+  racket:[
+    ["comment",String.raw`#\|[\s\S]*?\|#|;[^\n]*`],
+    ["string",String.raw`"(?:\\.|[^"\\])*"`],
+    ["keyword",String.raw`#lang\s+[a-zA-Z0-9_-]+|\b(?:define|lambda|if|unless|when|cond|case|let|let\*|letrec|begin|and|or|not|quote|quasiquote|unquote|set!|provide|require|for|for/list|in-range|in-list|match)\b`],
+    ["constant",String.raw`#(?:t|f)\b`],
+    ["number",String.raw`[+-]?(?:\d+/\d+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)`],
+    ["builtin",String.raw`\b(?:display|displayln|write|newline|sleep|random|length|list|cons|car|cdr|map|filter|remove|list-ref|format|error|raise-argument-error|exact-positive-integer\?|string|md5|flush-output|floor|max|in-range)\b`],
+    ["operator",String.raw`(?:#'|[(){}\[\]',.])`]
+  ],
+  elixir:[
+    ["comment",String.raw`#.*`],
+    ["string",String.raw`"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'`],
+    ["keyword",String.raw`\b(?:after|and|case|catch|cond|def|defdelegate|defexception|defimpl|defmacro|defmodule|defp|defprotocol|defstruct|do|else|end|fn|for|if|import|in|not|or|receive|require|rescue|try|unless|use|when|with)\b`],
+    ["constant",String.raw`\b(?:true|false|nil|__MODULE__|__DIR__|__ENV__)\b`],
+    ["number",String.raw`\b(?:0[xX][\da-fA-F_]+|0[bB][01_]+|\d[\d_]*(?:\.\d[\d_]*)?(?:[eE][+-]?\d+)?)\b`],
+    ["atom",String.raw`:[a-zA-Z_]\w*[!?]?`],
+    ["builtin",String.raw`\b(?:IO|Enum|String|Map|List|Process|System|OptionParser|Keyword|self|spawn|send|receive|sleep|round|max|raise|inspect)\b`],
+    ["operator",String.raw`(?:===|!==|==|!=|<=|>=|=>|->|&&|\|\||\|>|<>|[+\-*\/%=<>!&|^~?:])`]
+  ]
+};
+
+function renderSource(target,source,runtime,fitSource=true){
+  const content=document.createElement("span");
+  content.className="source-content";
+  target.replaceChildren(content);
+  target.dataset.fitSource=String(fitSource);
+  target.dataset.runtime=runtime;
+  codeSheets.add(target);
+  const rules=syntaxRules[runtime];
+  if(!rules){
+    content.textContent=source;
+    fitCodeSheet(target);
+    return;
+  }
+  const expression=new RegExp(rules.map(([,pattern])=>`(${pattern})`).join("|"),"g");
+  let offset=0;
+  let match;
+  while((match=expression.exec(source))){
+    if(match.index>offset)content.append(document.createTextNode(source.slice(offset,match.index)));
+    const token=document.createElement("span");
+    const ruleIndex=match.slice(1).findIndex(value=>value!==undefined);
+    token.className=`syntax-${rules[ruleIndex][0]}`;
+    token.textContent=match[0];
+    content.append(token);
+    offset=expression.lastIndex;
+  }
+  if(offset<source.length)content.append(document.createTextNode(source.slice(offset)));
+  fitCodeSheet(target);
+}
+
+function readEditorSource(target){
+  return target.innerText.replace(/\r\n?/g,"\n");
+}
+
+function editorCaretOffset(target){
+  const selection=window.getSelection();
+  if(!selection?.rangeCount||!target.contains(selection.anchorNode))return null;
+  const range=document.createRange();
+  range.selectNodeContents(target);
+  range.setEnd(selection.anchorNode,selection.anchorOffset);
+  return range.toString().length;
+}
+
+function restoreEditorCaret(target,offset){
+  if(offset===null)return;
+  const walker=document.createTreeWalker(target,NodeFilter.SHOW_TEXT);
+  let node;
+  let remaining=offset;
+  while((node=walker.nextNode())){
+    if(remaining<=node.length){
+      const range=document.createRange();
+      range.setStart(node,remaining);
+      range.collapse(true);
+      const selection=window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      return;
+    }
+    remaining-=node.length;
+  }
+  const content=target.querySelector(".source-content");
+  if(!content)return;
+  if(!content.lastChild||content.lastChild.nodeType!==Node.TEXT_NODE){
+    content.append(document.createTextNode(""));
+  }
+  const range=document.createRange();
+  range.setStart(content.lastChild,content.lastChild.textContent.length);
+  range.collapse(true);
+  const selection=window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function bindSourceEditor(target){
+  target.addEventListener("input",()=>{
+    const offset=editorCaretOffset(target);
+    renderSource(target,readEditorSource(target),target.dataset.runtime||"",target.dataset.fitSource!=="false");
+    restoreEditorCaret(target,offset);
+  });
+}
+
+function fitCodeSheet(target){
+  const content=target.querySelector(".source-content");
+  if(!content)return;
+  let size=13;
+  content.style.fontSize=`${size}px`;
+  if(target.dataset.fitSource==="false")return;
+  const availableHeight=target.clientHeight
+    -parseFloat(getComputedStyle(target).paddingTop)
+    -parseFloat(getComputedStyle(target).paddingBottom);
+  while(size>4&&content.scrollHeight>availableHeight){
+    size-=0.25;
+    content.style.fontSize=`${size}px`;
+  }
+}
+
+function fitCodeSheets(){
+  codeSheets.forEach(fitCodeSheet);
+  fitPlayback(term);
+  fitPlayback(uploadPlaybackOutput);
+}
+
+function setPlaybackOutput(target,text){
+  target.dataset.output=text;
+  const content=document.createElement("span");
+  content.className="playback-content";
+  content.textContent=text||" ";
+  target.replaceChildren(content);
+  fitPlayback(target);
+}
+
+function appendPlaybackOutput(target,text){
+  const current=target.dataset.output||"";
+  const frameBoundary=/\f|\x1b\[[0-?]*[ -/]*[HJ]/g;
+  let frameEnd=-1;
+  let match;
+  while((match=frameBoundary.exec(text)))frameEnd=frameBoundary.lastIndex;
+  const output=frameEnd===-1?current+text:text.slice(frameEnd);
+  setPlaybackOutput(target,output
+    .replace(/\r/g,"")
+    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,""));
+}
+
+function fitPlayback(target){
+  const content=target.querySelector(".playback-content");
+  if(!content||target.clientWidth===0||target.clientHeight===0)return;
+  const style=getComputedStyle(target);
+  const availableWidth=target.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+  const availableHeight=target.clientHeight-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
+  let size=13;
+  content.style.fontSize=`${size}px`;
+  for(let attempt=0;attempt<12;attempt++){
+    const width=content.scrollWidth;
+    const height=content.scrollHeight;
+    if(width<=availableWidth&&height<=availableHeight)break;
+    const ratio=Math.min(availableWidth/width,availableHeight/height);
+    size=Math.max(8,size*Math.min(ratio*.96,.96));
+    content.style.fontSize=`${size}px`;
+  }
+}
+
+async function updateUploadPreview(loadFileSource=false){
+  const file=uploadFileInput.files[0];
+  const runtime=uploadRuntimeSelect.value;
+  document.getElementById("upload-stage-filename").textContent=file?.name||"";
+  document.getElementById("upload-stage-runtime").textContent=runtime||"";
+  applyPalette(uploadThemeSelect.value);
+  if(!file){
+    renderSource(uploadPreview,"Choose a source file to preview it here.",runtime,uploadFitSource.checked);
+    return;
+  }
+  try{
+    const source=loadFileSource?await file.text():readEditorSource(uploadPreview);
+    if(uploadFileInput.files[0]!==file)return;
+    renderSource(uploadPreview,source,runtime,uploadFitSource.checked);
+  }catch(error){
+    uploadPreview.textContent=`Could not preview source: ${error.message}`;
+  }
+}
+
+async function previewUploadedPoem(){
+  const file=uploadFileInput.files[0];
+  if(!file){
+    uploadPlaybackStatus.textContent="Choose a source file in the source tab first.";
+    showUploadStage("source");
+    uploadFileInput.focus();
+    return;
+  }
+  const runtime=uploadRuntimeSelect.value;
+  const expectedRuntime=runtimes.find(item=>item.id===runtime);
+  const extension=file.name.match(/\.[^.]+$/)?.[0]?.toLowerCase();
+  if(!expectedRuntime||extension!==expectedRuntime.extension){
+    uploadPlaybackStatus.textContent="The selected runtime does not match the source file extension.";
+    uploadRuntimeSelect.focus();
+    return;
+  }
+  let controlConfig;
+  try{
+    controlConfig=getUploadControls();
+  }catch(error){
+    uploadPlaybackStatus.textContent=error.message;
+    document.querySelector(`#upload-controls [data-control-value="${error.controlId}"]`).focus();
+    return;
+  }
+  stopUploadPreview();
+  showUploadStage("playback");
+  setPlaybackOutput(uploadPlaybackOutput,"");
+  uploadPlaybackStatus.textContent="Running preview...";
+  const controller=new AbortController();
+  uploadPreviewRequest=controller;
+  uploadPreviewRunButton.disabled=true;
+  uploadPreviewStopButton.disabled=false;
+  try{
+    const response=await fetch("/api/preview",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        filename:file.name,
+        runtime,
+        source:readEditorSource(uploadPreview),
+        controls:controlConfig
+      }),
+      signal:controller.signal
+    });
+    if(!response.ok)throw new Error(await response.text()||`Preview returned HTTP ${response.status}`);
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder();
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      appendPlaybackOutput(uploadPlaybackOutput,decoder.decode(value,{stream:true}));
+    }
+    appendPlaybackOutput(uploadPlaybackOutput,decoder.decode());
+    uploadPlaybackStatus.textContent="Preview finished.";
+  }catch(error){
+    if(error.name!=="AbortError"){
+      appendPlaybackOutput(uploadPlaybackOutput,`Preview error: ${error.message}`);
+      uploadPlaybackStatus.textContent="Preview failed.";
+    }
+  }finally{
+    if(uploadPreviewRequest===controller){
+      uploadPreviewRequest=null;
+      uploadPreviewRunButton.disabled=false;
+      uploadPreviewStopButton.disabled=true;
+    }
+  }
+}
+
+function stop(){
+  if(!activeRequest)return;
+  activeRequest.abort();
+  activeRequest=null;
+  runButton.disabled=false;
+  stopButton.disabled=true;
+}
+
+async function run(){
+  if(!selected)return;
+  stop();
+  setPlaybackOutput(term,"");
+  const settings=settingsByPoem[selected.id]||{};
+  const controller=new AbortController();
+  activeRequest=controller;
+  runButton.disabled=true;
+  stopButton.disabled=false;
+  try{
+    const response=await fetch("/api/run",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({poem:selected.id,source:readEditorSource(src),...settings}),
+      signal:controller.signal
+    });
+    if(!response.ok){
+      const error=new Error(await response.text()||`Interpreter server returned HTTP ${response.status}`);
+      error.status=response.status;
+      throw error;
+    }
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder();
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      appendTerminalOutput(decoder.decode(value,{stream:true}));
+    }
+    appendTerminalOutput(decoder.decode());
+  }catch(error){
+    if(error.name!=="AbortError"){
+      if(error.status===404&&selected)await removeUnavailablePoem(selected,error.message);
+      else appendPlaybackOutput(term,`Interpreter error: ${error.message}`);
+    }
+  }finally{
+    if(activeRequest===controller){
+      activeRequest=null;
+      runButton.disabled=false;
+      stopButton.disabled=true;
+    }
+  }
+}
+
+function appendTerminalOutput(text){
+  appendPlaybackOutput(term,text);
+}
+
+async function selectPoem(poem){
+  stop();
+  selected=poem;
+  applyPalette(poem.theme);
+  showingUpload=false;
+  showingAbout=false;
+  poemView.hidden=false;
+  uploadView.hidden=true;
+  aboutView.hidden=true;
+  setPlaybackOutput(term,"");
+  document.getElementById("fname").textContent=poem.id;
+  document.getElementById("cmd").textContent=`$ ${poem.runtime} ${poem.id}`;
+  renderTabs();
+  renderControls(poem);
+  src.textContent="Loading source...";
+  try{
+    const response=await fetch(`/api/source?poem=${encodeURIComponent(poem.id)}`);
+    if(!response.ok){
+      const error=new Error(await response.text());
+      error.status=response.status;
+      throw error;
+    }
+    const source=await response.text();
+    if(selected===poem)renderSource(src,source,poem.runtime,poem.fitSource!==false);
+  }catch(error){
+    if(selected===poem){
+      if(error.status===404)await removeUnavailablePoem(poem,error.message);
+      else src.textContent=`Could not load source: ${error.message}`;
+    }
+  }
+}
+
+async function removeUnavailablePoem(poem,message){
+  poems=poems.filter(item=>item.id!==poem.id);
+  delete settingsByPoem[poem.id];
+  if(selected!==poem)return;
+  selected=undefined;
+  renderTabs();
+  if(poems.length){
+    await selectPoem(poems[0]);
+    setPlaybackOutput(term,`${message}\n`);
+  }else{
+    showUpload();
+    uploadStatus.textContent=`${message} Choose another source file to add a poem.`;
+  }
+}
+
+function showUpload(){
+  stop();
+  showingUpload=true;
+  showingAbout=false;
+  poemView.hidden=true;
+  uploadView.hidden=false;
+  aboutView.hidden=true;
+  uploadThemeSelect.value=selected?.theme||palettes[0]?.id||"";
+  showUploadStage("source");
+  uploadStatus.textContent="";
+  renderTabs();
+  updateUploadPreview();
+}
+
+function showAbout(){
+  stop();
+  showingUpload=false;
+  showingAbout=true;
+  poemView.hidden=true;
+  uploadView.hidden=true;
+  aboutView.hidden=false;
+  renderTabs();
+}
+
+async function uploadPoem(event){
+  event.preventDefault();
+  const file=uploadFileInput.files[0];
+  if(!file){
+    showUploadStage("source");
+    uploadStatus.textContent="Choose a source file before saving.";
+    uploadFileInput.focus();
+    return;
+  }
+  const submit=document.getElementById("upload-submit");
+  let controlConfig;
+  try{
+    controlConfig=getUploadControls();
+  }catch(error){
+    uploadStatus.textContent=error.message;
+    document.querySelector(`#upload-controls [data-control-value="${error.controlId}"]`).focus();
+    return;
+  }
+  submit.disabled=true;
+  uploadStatus.textContent="Saving poem...";
+  try{
+    const response=await fetch("/api/poems",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        filename:file.name,
+        runtime:document.getElementById("upload-runtime").value,
+        theme:document.getElementById("upload-theme").value,
+        fitSource:uploadFitSource.checked,
+        source:await file.text(),
+        controls:controlConfig
+      })
+    });
+    if(!response.ok)throw new Error(await response.text());
+    const poem=await response.json();
+    poems.push(poem);
+    uploadForm.reset();
+    renderUploadControls();
+    await selectPoem(poem);
+  }catch(error){
+    uploadStatus.textContent=`Could not save poem: ${error.message}`;
+  }finally{
+    submit.disabled=false;
+  }
+}
+
+async function initialize(){
+  try{
+    const [poemResponse,runtimeResponse,paletteResponse]=await Promise.all([
+      fetch("/api/poems"),
+      fetch("/api/runtimes"),
+      fetch("/api/themes")
+    ]);
+    if(!poemResponse.ok)throw new Error(await poemResponse.text());
+    if(!runtimeResponse.ok)throw new Error(await runtimeResponse.text());
+    if(!paletteResponse.ok)throw new Error(await paletteResponse.text());
+    poems=await poemResponse.json();
+    runtimes=await runtimeResponse.json();
+    palettes=await paletteResponse.json();
+    renderUploadControls();
+    const runtimeSelect=document.getElementById("upload-runtime");
+    runtimes.forEach(runtime=>{
+      const option=document.createElement("option");
+      option.value=runtime.id;
+      option.textContent=`${runtime.label} (${runtime.extension})`;
+      runtimeSelect.appendChild(option);
+    });
+    const themeSelect=document.getElementById("upload-theme");
+    palettes.forEach(palette=>{
+      const option=document.createElement("option");
+      option.value=palette.id;
+      option.textContent=palette.label;
+      themeSelect.appendChild(option);
+    });
+    applyPalette(selected?.theme||palettes[0]?.id);
+    renderTabs();
+    runButton.addEventListener("click",run);
+    stopButton.addEventListener("click",stop);
+    uploadPreviewRunButton.addEventListener("click",previewUploadedPoem);
+    uploadPreviewStopButton.addEventListener("click",stopUploadPreview);
+    bindSourceEditor(src);
+    bindSourceEditor(uploadPreview);
+    uploadForm.addEventListener("submit",uploadPoem);
+    uploadSourceTab.addEventListener("click",()=>showUploadStage("source"));
+    uploadPlaybackTab.addEventListener("click",()=>showUploadStage("playback"));
+    for(const tab of [uploadSourceTab,uploadPlaybackTab]){
+      tab.addEventListener("keydown",event=>{
+        if(event.key==="ArrowLeft"||event.key==="ArrowRight"){
+          event.preventDefault();
+          const next=tab===uploadSourceTab?uploadPlaybackTab:uploadSourceTab;
+          showUploadStage(next===uploadSourceTab?"source":"playback");
+          next.focus();
+        }
+      });
+    }
+    uploadFileInput.addEventListener("change",async()=>{
+      stopUploadPreview();
+      showUploadStage("source");
+      const extension=uploadFileInput.files[0]?.name.match(/\.[^.]+$/)?.[0]?.toLowerCase();
+      const runtime=runtimes.find(item=>item.extension===extension);
+      if(runtime)uploadRuntimeSelect.value=runtime.id;
+      await updateUploadPreview(true);
+    });
+    uploadRuntimeSelect.addEventListener("change",()=>{
+      stopUploadPreview();
+      updateUploadPreview();
+    });
+    uploadThemeSelect.addEventListener("change",()=>{
+      stopUploadPreview();
+      updateUploadPreview();
+    });
+    uploadFitSource.addEventListener("change",()=>updateUploadPreview());
+    if(poems.length)await selectPoem(poems[0]);
+    else showUpload();
+  }catch(error){
+    setPlaybackOutput(term,`Could not connect to the interpreter server: ${error.message}`);
+    runButton.disabled=true;
+  }
+}
+
+initialize();
+window.addEventListener("resize",fitCodeSheets);
+</script>
+</body>
+</html>
