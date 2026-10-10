@@ -34,7 +34,7 @@ defp dont_wake_up([]), do: :ok
 defp dreams(zzz, dream) do
 Enum.each(String.graphemes(zzz), fn character ->
 IO.write(character)
-Process.sleep(max(round(70 / dream), 1))
+Process.sleep(max(round(35 / dream), 0.1))
 end)
 IO.write("\n")
 end
@@ -48,7 +48,7 @@ if dreaming != [] or sleeping != [] do
 raise ArgumentError,
 "DONT WAKE UP #{inspect(sleeping)} #{inspect(dreaming)}"
 end
-dream = Keyword.get(stay_dreaming, :speed, Keyword.get(stay_dreaming, :dream, 1.0))
+dream = Keyword.get(stay_dreaming, :speed, Keyword.get(stay_dreaming, :dream, 0.1))
 if dream < 0.25 or dream > 4 do
 raise ArgumentError, "DONT WAKE UP AND #{inspect(dream)}"
 end

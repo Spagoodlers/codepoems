@@ -67,6 +67,17 @@ streamed into the playback window. Programs can emit a form-feed (`\f`) or a
 terminal clear sequence to replace the displayed frame instead of accumulating
 output.
 
+Use **export gif** in the playback toolbar to stop playback and create an
+accelerated replay as an animated GIF. The replay uses the maximum configured
+`speed` value, captures at up to 10 frames per second, and stops when it sees a
+repeated cleared frame. It has a 30-second limit as a fallback for poems that
+do not repeat a cleared frame. Click **stop & export** during capture to end it
+early and export the frames captured so far.
+
+Example GIF export:
+
+![Animated GIF example of a poem playback](screenshots/samplepoem.gif)
+
 The included `moon_mailbox.exs` poem types its lines character by character,
 holds the completed page for three seconds, then removes one line per second
 until the page is empty and starts again. Its speed control changes the
@@ -81,9 +92,12 @@ limited to 1 MB. Existing filenames are never overwritten.
 
 The right-hand window has **source** and **playback** tabs. The source tab
 previews the selected file with syntax highlighting and allows temporary
-editing. **Preview** executes the current editor contents. **Save poem**
-stores the original selected file, not edits made in the browser, and adds its
-settings to `config\poems.json`.
+editing. **Preview** executes the current editor contents; **export gif** in
+the playback toolbar stops playback and creates an accelerated GIF using the
+maximum configured `speed` value, stopping at a repeated cleared frame or after
+30 seconds.
+**Save poem** stores the original selected file, not edits made in the browser,
+and adds its settings to `config\poems.json`.
 
 The upload form starts with `iterations` (1–1000, default 100) and `speed`
 (0.25–4, default 1) controls. Each configured control is passed as a

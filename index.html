@@ -96,7 +96,7 @@ select option{background:var(--bg);color:var(--ink)}
   <div id="controls" class="controls" aria-label="Interpreter controls"></div>
   <main>
     <div class="win source-win"><div class="bar"><span id="fname"></span><span class="sp"></span><span>temporary edits</span></div><pre id="src" class="code-sheet" contenteditable="true" role="textbox" aria-label="Editable poem source" aria-multiline="true" spellcheck="false"></pre></div>
-    <div class="win"><div class="bar"><span id="cmd"></span><span class="sp"></span><button id="run">run</button><button id="stop" disabled>stop</button></div><pre id="term" aria-live="polite"></pre></div>
+    <div class="win"><div class="bar"><span id="cmd"></span><span class="sp"></span><span id="gif-status" role="status" aria-live="polite"></span><button id="playback-gif" type="button" title="Runs a fast replay and exports one repeated cycle as an animated GIF.">export gif</button><button id="run">run</button><button id="stop" disabled>stop</button></div><pre id="term" aria-live="polite"></pre></div>
   </main>
   <p class="note">Poems run from installed local runtimes. Start the server with <code>node .\server.js</code>.</p>
 </section>
@@ -143,6 +143,7 @@ select option{background:var(--bg);color:var(--ink)}
           <span class="sp"></span>
           <span id="upload-stage-filename"></span>
           <span id="upload-stage-runtime"></span>
+          <button id="upload-playback-gif" type="button" title="Runs a fast replay and exports one repeated cycle as an animated GIF.">export gif</button>
           <button id="upload-preview-run" type="button">preview</button>
           <button id="upload-preview-stop" type="button" disabled>stop</button>
         </div>
@@ -162,6 +163,8 @@ const src=document.getElementById("src");
 const term=document.getElementById("term");
 const runButton=document.getElementById("run");
 const stopButton=document.getElementById("stop");
+const playbackGifButton=document.getElementById("playback-gif");
+const gifStatus=document.getElementById("gif-status");
 const poemView=document.getElementById("poem-view");
 const uploadView=document.getElementById("upload-view");
 const aboutView=document.getElementById("about-view");
@@ -177,6 +180,7 @@ const uploadPlaybackTab=document.getElementById("upload-playback-tab");
 const uploadPlaybackOutput=document.getElementById("upload-playback-output");
 const uploadPreviewRunButton=document.getElementById("upload-preview-run");
 const uploadPreviewStopButton=document.getElementById("upload-preview-stop");
+const uploadPlaybackGifButton=document.getElementById("upload-playback-gif");
 const uploadPlaybackStatus=document.getElementById("upload-playback-status");
 let poems=[];
 let runtimes=[];
@@ -192,6 +196,9 @@ const uploadControlDefinitions=[
 ];
 const codeSheets=new Set();
 const settingsByPoem={};
+const playbackRecordings=new WeakMap();
+const gifFrameInterval=100;
+const gifRecordingLimit=30000;
 
 function applyPalette(themeId){
   const palette=palettes.find(item=>item.id===themeId)
@@ -348,6 +355,70 @@ function stopUploadPreview(){
   uploadPlaybackStatus.textContent="Preview stopped.";
 }
 
+function exportSelectedPlaybackGif(){
+  if(playbackRecordings.get(term)?.finishedAt===null){
+    return exportPlaybackGif(term,playbackGifButton,`${selected?.id||"code-poem"}.gif`,gifStatus);
+  }
+  if(!selected){
+    gifStatus.textContent="Select a poem before exporting a GIF.";
+    return;
+  }
+  const poem=selected;
+  const settings={...(settingsByPoem[poem.id]||{})};
+  const speedControl=poem.controls.find(control=>control.id==="speed");
+  if(speedControl)settings.speed=speedControl.max;
+  setPlaybackOutput(term,"");
+  gifStatus.textContent="";
+  return exportPlaybackGif(
+    term,playbackGifButton,`${poem.id}.gif`,gifStatus,"/api/run",
+    {poem:poem.id,source:readEditorSource(src),...settings}
+  );
+}
+
+function exportUploadedPlaybackGif(){
+  if(playbackRecordings.get(uploadPlaybackOutput)?.finishedAt===null){
+    return exportPlaybackGif(
+      uploadPlaybackOutput,uploadPlaybackGifButton,"code-poem.gif",uploadPlaybackStatus
+    );
+  }
+  const file=uploadFileInput.files[0];
+  if(!file){
+    uploadPlaybackStatus.textContent="Choose a source file before exporting a GIF.";
+    return;
+  }
+  const runtime=uploadRuntimeSelect.value;
+  const expectedRuntime=runtimes.find(item=>item.id===runtime);
+  const extension=file.name.match(/\.[^.]+$/)?.[0]?.toLowerCase();
+  if(!expectedRuntime||extension!==expectedRuntime.extension){
+    uploadPlaybackStatus.textContent="The selected runtime does not match the source file extension.";
+    uploadRuntimeSelect.focus();
+    return;
+  }
+  let controls;
+  try{
+    controls=getUploadControls();
+  }catch(error){
+    uploadPlaybackStatus.textContent=error.message;
+    document.querySelector(`#upload-controls [data-control-value="${error.controlId}"]`).focus();
+    return;
+  }
+  const speedControl=controls.find(control=>control.id==="speed");
+  if(speedControl)speedControl.value=speedControl.max;
+  showUploadStage("playback");
+  setPlaybackOutput(uploadPlaybackOutput,"");
+  const filename=`${file.name.replace(/\.[^.]+$/,"")||"code-poem"}.gif`;
+  return exportPlaybackGif(
+    uploadPlaybackOutput,uploadPlaybackGifButton,filename,uploadPlaybackStatus,
+    "/api/preview",
+    {
+      filename:file.name,
+      runtime,
+      source:readEditorSource(uploadPreview),
+      controls
+    }
+  );
+}
+
 const syntaxRules={
   javascript:[
     ["comment",String.raw`//[^\n]*|/\*[\s\S]*?\*/`],
@@ -498,18 +569,342 @@ function setPlaybackOutput(target,text){
   content.textContent=text||" ";
   target.replaceChildren(content);
   fitPlayback(target);
+  capturePlaybackFrame(target);
+}
+
+function startPlaybackRecording(target){
+  const recording={
+    frames:[],
+    completedFrames:new Set(),
+    startedAt:performance.now(),
+    lastCapturedAt:-Infinity,
+    lastCapturedText:null,
+    finishedAt:null,
+    cycleDetected:false,
+    width:target.clientWidth,
+    height:target.clientHeight,
+    backgroundColor:getComputedStyle(target).backgroundColor,
+    color:getComputedStyle(target).color
+  };
+  playbackRecordings.set(target,recording);
+  return recording;
+}
+
+function capturePlaybackFrame(target,force=false){
+  const recording=playbackRecordings.get(target);
+  if(!recording||recording.finishedAt!==null)return;
+  const elapsed=performance.now()-recording.startedAt;
+  const text=target.dataset.output||"";
+  if(!text||elapsed>gifRecordingLimit||text===recording.lastCapturedText
+    ||(!force&&elapsed-recording.lastCapturedAt<gifFrameInterval))return;
+  const content=target.querySelector(".playback-content");
+  const contentStyle=content?getComputedStyle(content):null;
+  recording.frames.push({
+    text,
+    at:elapsed,
+    fontSize:parseFloat(contentStyle?.fontSize||"13px"),
+    fontFamily:contentStyle?.fontFamily||getComputedStyle(target).fontFamily,
+    backgroundColor:recording.backgroundColor,
+    color:recording.color
+  });
+  recording.lastCapturedAt=elapsed;
+  recording.lastCapturedText=text;
+}
+
+function finishPlaybackRecording(target,recording){
+  if(playbackRecordings.get(target)!==recording)return;
+  capturePlaybackFrame(target,true);
+  recording.finishedAt=Math.min(performance.now()-recording.startedAt,gifRecordingLimit);
+}
+
+function completePlaybackFrame(target,text){
+  const recording=playbackRecordings.get(target);
+  if(!recording||recording.finishedAt!==null||!text)return false;
+  capturePlaybackFrame(target,true);
+  if(recording.completedFrames.has(text)){
+    recording.cycleDetected=true;
+    return true;
+  }
+  recording.completedFrames.add(text);
+  return false;
+}
+
+function gifColorTable(backgroundColor){
+  const colors=new Uint8Array(256*3);
+  const background=backgroundColor.match(/\d+/g)?.map(Number);
+  if(background?.length>=3)colors.set(background.slice(0,3),0);
+  for(let index=1;index<256;index++){
+    colors[index*3]=Math.round(((index>>5)&7)*255/7);
+    colors[index*3+1]=Math.round(((index>>2)&7)*255/7);
+    colors[index*3+2]=Math.round((index&3)*255/3);
+  }
+  return colors;
+}
+
+function gifLzw(indices){
+  const clearCode=256;
+  const endCode=257;
+  let codeSize=9;
+  let nextCode=258;
+  let dictionary=new Map();
+  let output=[];
+  let bitBuffer=0;
+  let bitCount=0;
+  const writeCode=code=>{
+    bitBuffer|=code<<bitCount;
+    bitCount+=codeSize;
+    while(bitCount>=8){
+      output.push(bitBuffer&255);
+      bitBuffer>>>=8;
+      bitCount-=8;
+    }
+  };
+  const reset=()=>{
+    dictionary=new Map();
+    codeSize=9;
+    nextCode=258;
+  };
+  reset();
+  writeCode(clearCode);
+  if(indices.length){
+    let prefix=indices[0];
+    for(let index=1;index<indices.length;index++){
+      const value=indices[index];
+      const key=(prefix<<8)|value;
+      if(dictionary.has(key)){
+        prefix=dictionary.get(key);
+        continue;
+      }
+      writeCode(prefix);
+      if(nextCode<4096){
+        dictionary.set(key,nextCode++);
+        if(nextCode>(1<<codeSize)&&codeSize<12)codeSize++;
+      }else{
+        writeCode(clearCode);
+        reset();
+      }
+      prefix=value;
+    }
+    writeCode(prefix);
+  }
+  writeCode(endCode);
+  if(bitCount)output.push(bitBuffer&255);
+  return new Uint8Array(output);
+}
+
+function renderGifFrame(frame,target,width,height,recording){
+  const canvas=document.createElement("canvas");
+  canvas.width=width;
+  canvas.height=height;
+  const context=canvas.getContext("2d",{willReadFrequently:true});
+  const targetStyle=getComputedStyle(target);
+  const scale=Math.min(width/recording.width,height/recording.height);
+  const paddingLeft=parseFloat(targetStyle.paddingLeft)*scale;
+  const paddingRight=parseFloat(targetStyle.paddingRight)*scale;
+  const paddingTop=parseFloat(targetStyle.paddingTop)*scale;
+  const paddingBottom=parseFloat(targetStyle.paddingBottom)*scale;
+  const fontSize=frame.fontSize*scale;
+  const lineHeight=fontSize*1.1;
+  const lines=frame.text.split("\n");
+  context.fillStyle=frame.backgroundColor;
+  context.fillRect(0,0,width,height);
+  context.font=`${fontSize}px ${frame.fontFamily}`;
+  context.textBaseline="top";
+  context.fillStyle=frame.color;
+  const textWidth=lines.reduce((maximum,line)=>Math.max(maximum,context.measureText(line).width),0);
+  const left=paddingLeft+(width-paddingLeft-paddingRight-textWidth)/2;
+  const top=paddingTop+(height-paddingTop-paddingBottom-lines.length*lineHeight)/2;
+  lines.forEach((line,index)=>context.fillText(line,left,top+index*lineHeight));
+  const pixels=context.getImageData(0,0,width,height).data;
+  const indexed=new Uint8Array(width*height);
+  const background=frame.backgroundColor.match(/\d+/g)?.map(Number);
+  if(!background||background.length<3)throw new Error("Could not read playback background color.");
+  for(let pixel=0;pixel<indexed.length;pixel++){
+    const offset=pixel*4;
+    indexed[pixel]=pixels[offset]===background[0]
+      &&pixels[offset+1]===background[1]
+      &&pixels[offset+2]===background[2]
+      ?0
+      :Math.max(1,((pixels[offset]>>5)<<5)|((pixels[offset+1]>>5)<<2)|(pixels[offset+2]>>6));
+  }
+  return indexed;
+}
+
+function encodeGif(target,recording){
+  const scale=Math.min(1,480/recording.width,360/recording.height);
+  const width=Math.max(1,Math.round(recording.width*scale));
+  const height=Math.max(1,Math.round(recording.height*scale));
+  const palette=gifColorTable(recording.backgroundColor);
+  const bytes=[];
+  const writeWord=value=>{bytes.push(value&255,(value>>8)&255);};
+  const writeSubBlocks=data=>{
+    for(let offset=0;offset<data.length;offset+=255){
+      const block=data.subarray(offset,offset+255);
+      bytes.push(block.length,...block);
+    }
+    bytes.push(0);
+  };
+  const frames=recording.frames;
+  const endedAt=recording.finishedAt===null
+    ?Math.min(performance.now()-recording.startedAt,gifRecordingLimit)
+    :recording.finishedAt;
+  bytes.push(...new TextEncoder().encode("GIF89a"));
+  writeWord(width);
+  writeWord(height);
+  bytes.push(0xf7,0,0,...palette);
+  bytes.push(0x21,0xff,0x0b,...new TextEncoder().encode("NETSCAPE2.0"),3,1,0,0,0);
+  frames.forEach((frame,index)=>{
+    const nextAt=index+1<frames.length?frames[index+1].at:endedAt;
+    let delay=Math.max(10,Math.round((nextAt-frame.at)/10));
+    const pixels=renderGifFrame(frame,target,width,height,recording);
+    while(delay>65535){
+      bytes.push(0x21,0xf9,4,4);
+      writeWord(65535);
+      bytes.push(0,0,0x2c);
+      writeWord(0);writeWord(0);writeWord(width);writeWord(height);
+      bytes.push(0);
+      bytes.push(8);
+      writeSubBlocks(gifLzw(pixels));
+      delay-=65535;
+    }
+    bytes.push(0x21,0xf9,4,4);
+    writeWord(delay);
+    bytes.push(0,0,0x2c);
+    writeWord(0);writeWord(0);writeWord(width);writeWord(height);
+    bytes.push(0,8);
+    writeSubBlocks(gifLzw(pixels));
+  });
+  bytes.push(0x3b);
+  return new Blob([new Uint8Array(bytes)],{type:"image/gif"});
+}
+
+async function exportPlaybackGif(target,button,filename,status,requestUrl,requestBody){
+  const currentRecording=playbackRecordings.get(target);
+  if(currentRecording?.finishedAt===null){
+    currentRecording.stopReason="user";
+    currentRecording.controller.abort();
+    status.textContent="Stopping fast replay and exporting GIF...";
+    return;
+  }
+  if(target===term)stop();
+  else stopUploadPreview();
+  const recording=startPlaybackRecording(target);
+  const controller=new AbortController();
+  recording.controller=controller;
+  recording.requestUrl=requestUrl;
+  recording.requestBody=requestBody;
+  const isMainPlayback=target===term;
+  if(isMainPlayback){
+    activeRequest=controller;
+    runButton.disabled=true;
+    stopButton.disabled=false;
+    gifStatus.textContent="Capturing fast replay...";
+  }else{
+    uploadPreviewRequest=controller;
+    uploadPreviewRunButton.disabled=true;
+    uploadPreviewStopButton.disabled=false;
+    uploadPlaybackStatus.textContent="Capturing fast replay...";
+  }
+  button.textContent="stop & export";
+  const timeout=setTimeout(()=>{
+    recording.stopReason="timeout";
+    controller.abort();
+  },gifRecordingLimit);
+  try{
+    const response=await fetch(recording.requestUrl,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(recording.requestBody),
+      signal:controller.signal
+    });
+    if(!response.ok)throw new Error(await response.text()||`GIF replay returned HTTP ${response.status}`);
+    const reader=response.body.getReader();
+    const decoder=new TextDecoder();
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      appendPlaybackOutput(target,decoder.decode(value,{stream:true}));
+      if(recording.cycleDetected){
+        recording.stopReason="cycle";
+        controller.abort();
+      }
+    }
+    appendPlaybackOutput(target,decoder.decode());
+  }catch(error){
+    if(error.name!=="AbortError"){
+      status.textContent=`GIF export failed: ${error.message}`;
+      return;
+    }
+  }finally{
+    clearTimeout(timeout);
+    finishPlaybackRecording(target,recording);
+    if(isMainPlayback&&activeRequest===controller){
+      activeRequest=null;
+      runButton.disabled=false;
+      stopButton.disabled=true;
+    }
+    if(!isMainPlayback&&uploadPreviewRequest===controller){
+      uploadPreviewRequest=null;
+      uploadPreviewRunButton.disabled=false;
+      uploadPreviewStopButton.disabled=true;
+    }
+    button.textContent="export gif";
+  }
+  if(!recording.frames.length){
+    status.textContent="No playback frames were captured.";
+    return;
+  }
+  status.textContent="Exporting GIF...";
+  try{
+    await new Promise(resolve=>setTimeout(resolve,0));
+    const blob=encodeGif(target,recording);
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement("a");
+    link.href=url;
+    link.download=filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    status.textContent=recording.stopReason==="timeout"
+      ?"GIF downloaded (capture time limit reached)."
+      :recording.stopReason==="user"
+        ?"GIF downloaded (capture stopped)."
+        :"GIF downloaded.";
+  }catch(error){
+    status.textContent=`GIF export failed: ${error.message}`;
+  }
 }
 
 function appendPlaybackOutput(target,text){
   const current=target.dataset.output||"";
   const frameBoundary=/\f|\x1b\[[0-?]*[ -/]*[HJ]/g;
-  let frameEnd=-1;
+  let offset=0;
   let match;
-  while((match=frameBoundary.exec(text)))frameEnd=frameBoundary.lastIndex;
-  const output=frameEnd===-1?current+text:text.slice(frameEnd);
-  setPlaybackOutput(target,output
-    .replace(/\r/g,"")
-    .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,""));
+  let output=current;
+  let cycleDetected=false;
+  while((match=frameBoundary.exec(text))){
+    const completed=cleanPlaybackText(output+text.slice(offset,match.index));
+    if(completed){
+      setPlaybackOutput(target,completed);
+      if(completePlaybackFrame(target,completed)){
+        output="";
+        offset=text.length;
+        cycleDetected=true;
+        break;
+      }
+    }
+    output="";
+    offset=frameBoundary.lastIndex;
+  }
+  if(!cycleDetected){
+    output=cleanPlaybackText(output+text.slice(offset));
+    setPlaybackOutput(target,output);
+  }
+}
+
+function cleanPlaybackText(text){
+  return text.replace(/\r/g,"").replace(/\x1b\[[0-?]*[ -/]*[@-~]/g,"");
 }
 
 function fitPlayback(target){
@@ -629,6 +1024,7 @@ async function run(){
   if(!selected)return;
   stop();
   setPlaybackOutput(term,"");
+  gifStatus.textContent="";
   const settings=settingsByPoem[selected.id]||{};
   const controller=new AbortController();
   activeRequest=controller;
@@ -821,8 +1217,10 @@ async function initialize(){
     renderTabs();
     runButton.addEventListener("click",run);
     stopButton.addEventListener("click",stop);
+    playbackGifButton.addEventListener("click",exportSelectedPlaybackGif);
     uploadPreviewRunButton.addEventListener("click",previewUploadedPoem);
     uploadPreviewStopButton.addEventListener("click",stopUploadPreview);
+    uploadPlaybackGifButton.addEventListener("click",exportUploadedPlaybackGif);
     bindSourceEditor(src);
     bindSourceEditor(uploadPreview);
     uploadForm.addEventListener("submit",uploadPoem);
